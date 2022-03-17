@@ -28,7 +28,6 @@ class CdkStack(Stack):
             ],
         )
         
-
         # ? create a new security group
         sec_group = ec2.SecurityGroup(
             self,
@@ -54,7 +53,19 @@ class CdkStack(Stack):
             description="Allow HTTPS connection",
             connection=ec2.Port.tcp(443),
         )
+        
+        sec_group.add_ingress_rule(
+            peer=ec2.Peer.ipv4('10.0.0.0/16'),
+            description="Allow internal 5432",
+            connection=ec2.Port.tcp(5432),
+        )
+        
+        sec_group.add_ingress_rule(
+            peer=ec2.Peer.ipv4('10.0.0.0/16'),
+            description="Allow internal connection",
+            connection=ec2.Port.all_icmp()
+        )
 
-        # server_ec2 = CustomEC2(self, "server_ec2", vpc, sec_group, "test-server", ["server_asset", "server_cmd.sh"], ["server_asset", "hw4.zip"])
+        server_ec2 = CustomEC2(self, "server_ec2", vpc, sec_group, "test-server", ["server_asset", "server_cmd.sh"], ["test_folder"])
         
         db_ec2 = CustomEC2(self, "databse_ec2", vpc, sec_group, "test-sql-server", ["db_asset", "sql_setup.sh"])

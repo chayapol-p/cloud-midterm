@@ -6,7 +6,6 @@ from aws_cdk.aws_s3_assets import Asset
 from constructs import Construct
 
 from .custom_ec2 import CustomEC2
-from .sql_server import UbuntuEC2
 
 import os.path
 

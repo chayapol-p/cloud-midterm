@@ -65,7 +65,7 @@ class CdkStack(Stack):
             description="Allow internal connection",
             connection=ec2.Port.all_icmp()
         )
-
-        server_ec2 = CustomEC2(self, "server_ec2", vpc, sec_group, "test-server", ["server_asset", "server_cmd.sh"], ["..","..","server"])
+        version = "v0.6.0"
+        server_ec2 = CustomEC2(self, "server_ec2", vpc, sec_group, "test-server", version, ["server_asset", "server_cmd.sh"], ["..","..","server"])
         
-        db_ec2 = CustomEC2(self, "databse_ec2", vpc, sec_group, "test-sql-server", ["db_asset", "sql_setup.sh"])
+        db_ec2 = CustomEC2(self, "databse_ec2", vpc, sec_group, "test-sql-server", version, ["db_asset", "sql_setup.sh"])

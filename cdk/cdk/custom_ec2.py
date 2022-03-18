@@ -12,13 +12,13 @@ dirname = os.path.dirname(__file__)
 
 class CustomEC2:
     def __init__(self, scope: Construct, construct_id: str, vpc: ec2.Vpc, sec_group: ec2.SecurityGroup, instance_name: str,
-                 cmd_path: list = None, file_path: list = None, **kwargs) -> None:
+                 version: str, cmd_path: list = None, file_path: list = None, **kwargs) -> None:
 
         # define a new ec2 instance
         ec2_instance = ec2.Instance(
             scope,
-            f"{construct_id}-v0.5.0",
-            instance_name=f"{instance_name}-v0.5.0",
+            f"{construct_id}-{version}",
+            instance_name=f"{instance_name}-{version}",
             instance_type=ec2.InstanceType("t2.micro"),
             machine_image=ec2.MachineImage.latest_amazon_linux(
                 kernel=ec2.AmazonLinuxKernel.KERNEL5_X,

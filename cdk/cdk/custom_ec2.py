@@ -17,8 +17,8 @@ class CustomEC2:
         # define a new ec2 instance
         ec2_instance = ec2.Instance(
             scope,
-            f"{construct_id}-v0.4.0",
-            instance_name=f"{instance_name}-v0.4.0",
+            f"{construct_id}-v0.5.0",
+            instance_name=f"{instance_name}-v0.5.0",
             instance_type=ec2.InstanceType("t2.micro"),
             machine_image=ec2.MachineImage.latest_amazon_linux(
                 kernel=ec2.AmazonLinuxKernel.KERNEL5_X,

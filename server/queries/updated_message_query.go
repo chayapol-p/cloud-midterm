@@ -11,15 +11,15 @@ type UpdatedMessageQueries struct {
 }
 
 // GetMessages method for getting all messages.
-func (q *UpdatedMessageQueries) GetUpdates() ([]models.UpdatedMessage, error) {
+func (q *UpdatedMessageQueries) GetUpdates() ([]models.OutputUpdatedMessage, error) {
 	// Define messages variable.
-	updates := []models.UpdatedMessage{}
+	updates := []models.OutputUpdatedMessage{}
 
 	// Define query string.
-	query := `SELECT * FROM updated_messages`
+	query := `SELECT uuid, author, message, likes, is_deleted FROM updated_messages`
 
 	// Send query to database.
-	err := q.Get(&updates, query)
+	err := q.Select(&updates, query)
 	if err != nil {
 		// Return empty object and error.
 		return updates, err
@@ -54,7 +54,7 @@ func (q *UpdatedMessageQueries) CreateUpdate(m *models.UpdatedMessage) error {
 	query := `INSERT INTO updated_messages VALUES ($1, $2, $3, $4, $5, $6)`
 
 	// Send query to database.
-	_, err := q.Exec(query, m.UUID, m.Timestamp, m.Message, m.Author, m.Likes, m.IsDeleted)
+	_, err := q.Exec(query, m.UUID, m.Timestamp, m.Author, m.Message, m.Likes, m.IsDeleted)
 	if err != nil {
 		// Return only error.
 		return err

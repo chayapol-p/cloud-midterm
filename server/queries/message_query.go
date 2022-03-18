@@ -11,15 +11,15 @@ type MessageQueries struct {
 }
 
 // GetMessages method for getting all messages.
-func (q *MessageQueries) GetMessages() ([]models.Message, error) {
+func (q *MessageQueries) GetMessages() ([]models.OutputMessage, error) {
 	// Define messages variable.
-	messages := []models.Message{}
+	messages := []models.OutputMessage{}
 
 	// Define query string.
-	query := `SELECT * FROM messages`
+	query := `SELECT uuid, author, message, likes FROM messages`
 
 	// Send query to database.
-	err := q.Get(&messages, query)
+	err := q.Select(&messages, query)
 	if err != nil {
 		// Return empty object and error.
 		return messages, err
@@ -51,10 +51,10 @@ func (q *MessageQueries) GetMessage(uuid string) (models.Message, error) {
 // CreateMessage method for creating message by given Message object.
 func (q *MessageQueries) CreateMessage(m *models.Message) error {
 	// Define query string.
-	query := `INSERT INTO messages VALUES ($1, $2, $3, $4, $5, $6)`
+	query := `INSERT INTO messages VALUES ($1, $2, $3, $4, $5)`
 
 	// Send query to database.
-	_, err := q.Exec(query, m.UUID, m.Timestamp, m.Message, m.Author, m.Likes)
+	_, err := q.Exec(query, m.UUID, m.Timestamp, m.Author, m.Message, m.Likes)
 	if err != nil {
 		// Return only error.
 		return err

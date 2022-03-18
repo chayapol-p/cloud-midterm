@@ -59,7 +59,8 @@ def update_n_delete(df_saved, update):
     for index, row in df_update.iterrows():
         # print(index, row['uuid'], row['is_deleted'])
         if row['is_deleted'] == 1:
-            df_saved.drop(index, inplace=True)
+            if index in df_saved.index:
+                df_saved.drop(index, inplace=True)
             continue
         if len(str(row['message'])) > 0:
             df_saved.loc[index, 'message'] = row['message']

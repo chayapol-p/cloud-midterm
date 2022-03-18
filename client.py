@@ -1,31 +1,46 @@
+from urllib import response
 import requests
 import pandas as pd
 import sys
 import os
 from datetime import timezone
 import datetime
+import json
 
-{
-    "uuid": "28503f06-a608-11ec-b909-0242ac120702",
-    "created_at": "2022-03-17T22:56:38.1985302+07:00",
-    "updated_at": "2022-03-17T22:56:38.1985311+07:00",
-    "message": "First Message",
-    "author": "job",
-    "likes": 0,
-    "is_deleted": 0
-}
 
-# moc response first sync
-response = [{'uuid': '0123456789', 'author': 'testname', 'message': 'testmessage', 'like': 0, 'time_stamp': 1647529287.822895},
-            {'uuid': '0123456710', 'author': 'testname1',
-                'message': 'testmessage1', 'like': 1, 'time_stamp': 1647529287.822895},
-            {'uuid': '0123456711', 'author': 'testname2',
-                'message': 'testmessage2', 'like': 2, 'time_stamp': 1647529287.822895},
-            {'uuid': '0123456712', 'author': 'testname3', 'message': 'testmessage3', 'like': 3, 'time_stamp': 1647529287.822895}]
+# T = '2022-03-18T09:50:10.568317+00:00'
+# # first
+# response = {'create': [{'uuid': '0123456710', 'author': 'testname1', 'message': 'testmessage1', 'like': 0, 'timestamp': T},
+#                        {'uuid': '0123456711', 'author': 'testname2', 'message': 'testmessage2',
+#                            'like': 1, 'timestamp': T},
+#                        {'uuid': '0123456712', 'author': 'testname3', 'message': 'testmessage3',
+#                            'like': 2, 'timestamp': T},
+#                        {'uuid': '0123456713', 'author': 'testname4', 'message': 'testmessage4',
+#                            'like': 3, 'timestamp': T},
+#                        {'uuid': '0123456714', 'author': 'testname5', 'message': 'testmessage5', 'like': 4, 'timestamp': T}],
+#             'update': []}
 
-# moc response update sync
-# response = [{'uuid': '0123456789', 'author': '', 'message': 'fsd', 'like': '', 'time_stamp': 1647530832.710686},
-#             {'uuid': '0123456710', 'author': 'testname', 'message': 'gqs', 'like': '3', 'time_stamp': 1647530832.710686}]
+# only update
+# response = {'create': [],
+#             'update': [{'uuid': '0123456712', 'author': '', 'message': 'asdf3', 'like': 3, 'timestamp': T, 'is_deleted': 0},
+#                        {'uuid': '0123456713', 'author': '', 'message': 'yqwef4', 'like': 4,
+#                            'timestamp': T, 'is_deleted': 0},
+#                        {'uuid': '0123456711', 'author': '', 'message': '', 'like': -1, 'timestamp': T, 'is_deleted': 0}]}
+
+# only delete
+# response = {'create': [],
+#             'update': [{'uuid': '0123456712', 'author': '', 'message': 'asdf3', 'like': 3, 'timestamp': T, 'is_deleted': 1},
+#                        {'uuid': '0123456713', 'author': '', 'message': 'yqwef4',
+#                            'like': 4, 'timestamp': T, 'is_deleted': 1},
+#                        {'uuid': '0123456711', 'author': '', 'message': '', 'like': -1, 'timestamp': T, 'is_deleted': 1}]}
+
+#create and update
+# response = {'create': [{'uuid': '0123456715', 'author': 'testname6', 'message': 'testmessage6', 'like': 0, 'timestamp': T}],
+#             'update': [{'uuid': '0123456714', 'author': '', 'message': 'krthdf5', 'like': 10, 'timestamp': T, 'is_deleted': 0}]}
+
+#create and delete
+# response = {'create': [{'uuid': '0123456716', 'author': 'testname7', 'message': 'testmessage7', 'like': 0, 'timestamp': T}],
+#             'update': [{'uuid': '0123456714', 'author': '', 'message': 'krthdf5', 'like': 10, 'timestamp': T, 'is_deleted': 1}]}
 
 endpoint = ''
 headers = {'Content-type': 'application/json; charset=utf-8'}
@@ -37,41 +52,56 @@ def find(name):
             return os.path.join(root, name)
 
 
+def update_n_delete(df_saved, update):
+    if not update:
+        return df_saved
+    df_update = pd.DataFrame(update)
+    df_update.set_index('uuid', inplace=True)
+    for index, row in df_update.iterrows():
+        # print(index, row['uuid'], row['is_deleted'])
+        if row['is_deleted'] == 1:
+            df_saved.drop(index, inplace=True)
+            continue
+        if len(str(row['message'])) > 0:
+            df_saved.loc[index, 'message'] = row['message']
+        if row['like'] != -1:
+            df_saved.loc[index, 'like'] = row['like']
+        df_saved.loc[index, 'timestamp'] = row['timestamp']
+    return df_saved
+
+
+def add_new(df_saved, create):
+    if not create:
+        return df_saved
+    df_create = pd.DataFrame(create)
+    df_create.set_index('uuid', inplace=True)
+    return pd.concat([df_saved, df_create])
+
+
 def sync():
     path = find('response.csv')
+    data_saved = pd.DataFrame()
+    timestamp = '0'
     if path is not None:
-        print("in")
-        data = pd.read_csv(path, dtype={'uuid': str},
-                           names=["uuid", "author", "message", "like", "time_stamp"])
-        params = {'timestamp': data['time_stamp'].max()}
-        # response = request.get(Endpoint,params=param,header)
-        df = pd.DataFrame(response)
-        for index, row in df.iterrows():
-            # print(row['uuid'])
-            if len(data[data['uuid'] == row['uuid']]):
-                if len(str(row['message'])) > 0:
-                    data.loc[data['uuid'] == row['uuid'],
-                             'message'] = row['message']
-                if len(str(row['like'])) > 0:
-                    data.loc[data['uuid'] == row['uuid'], 'like'] = row['like']
-                data.loc[data['uuid'] == row['uuid'],
-                         'time_stamp'] = row['time_stamp']
-            else:
-                data.append(row, ignore_index=True)
-        df = data
-    else:
-        params = {'timestamp': 0}
-        # response = request.get(Endpoint,params=param,header)
-        df = pd.DataFrame(response)
-    df.to_csv(
-        'response.csv', header=False, index=False)
+        data_saved = pd.read_csv(path, dtype={'uuid': str},
+                                 names=["uuid", "author", "message", "like", "timestamp", "is_deleted"])
+        data_saved.set_index('uuid', inplace=True)
+        timestamp = open("timestamp.txt", 'r').read()
+    f = open('timestamp.txt', "w")
+    f.write(datetime.datetime.now(timezone.utc).isoformat())
+    f.close()
+    params = {'timestamp': timestamp}
+    # json_response = requests.get(url=endpoint,params=params, headers=headers)
+    # response = json.loads(json_response)
+    data_saved = add_new(data_saved, response['create'])
+    data_saved = update_n_delete(data_saved, response['update'])
+    data_saved.to_csv(
+        'response.csv', header=False, index=True)
 
 
 def main(url):
-    # endpoint = url
-    # sync()
-    print(datetime.datetime.now().isoformat())
-    print(datetime.datetime.now(timezone.utc).isoformat())
+    endpoint = url
+    sync()
 
 
 main(sys.argv[1])

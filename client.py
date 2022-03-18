@@ -10,37 +10,37 @@ import json
 
 # T = '2022-03-18T09:50:10.568317+00:00'
 # # first
-# response = {'create': [{'uuid': '0123456710', 'author': 'testname1', 'message': 'testmessage1', 'like': 0, 'timestamp': T},
+# response = {'create': [{'uuid': '0123456710', 'author': 'testname1', 'message': 'testmessage1', 'likes': 0, 'timestamp': T},
 #                        {'uuid': '0123456711', 'author': 'testname2', 'message': 'testmessage2',
-#                            'like': 1, 'timestamp': T},
+#                            'likes': 1, 'timestamp': T},
 #                        {'uuid': '0123456712', 'author': 'testname3', 'message': 'testmessage3',
-#                            'like': 2, 'timestamp': T},
+#                            'likes': 2, 'timestamp': T},
 #                        {'uuid': '0123456713', 'author': 'testname4', 'message': 'testmessage4',
-#                            'like': 3, 'timestamp': T},
-#                        {'uuid': '0123456714', 'author': 'testname5', 'message': 'testmessage5', 'like': 4, 'timestamp': T}],
+#                            'likes': 3, 'timestamp': T},
+#                        {'uuid': '0123456714', 'author': 'testname5', 'message': 'testmessage5', 'likes': 4, 'timestamp': T}],
 #             'update': []}
 
 # only update
 # response = {'create': [],
-#             'update': [{'uuid': '0123456712', 'author': '', 'message': 'asdf3', 'like': 3, 'timestamp': T, 'is_deleted': 0},
-#                        {'uuid': '0123456713', 'author': '', 'message': 'yqwef4', 'like': 4,
+#             'update': [{'uuid': '0123456712', 'author': '', 'message': 'asdf3', 'likes': 3, 'timestamp': T, 'is_deleted': 0},
+#                        {'uuid': '0123456713', 'author': '', 'message': 'yqwef4', 'likes': 4,
 #                            'timestamp': T, 'is_deleted': 0},
-#                        {'uuid': '0123456711', 'author': '', 'message': '', 'like': -1, 'timestamp': T, 'is_deleted': 0}]}
+#                        {'uuid': '0123456711', 'author': '', 'message': '', 'likes': -1, 'timestamp': T, 'is_deleted': 0}]}
 
 # only delete
 # response = {'create': [],
-#             'update': [{'uuid': '0123456712', 'author': '', 'message': 'asdf3', 'like': 3, 'timestamp': T, 'is_deleted': 1},
+#             'update': [{'uuid': '0123456712', 'author': '', 'message': 'asdf3', 'likes': 3, 'timestamp': T, 'is_deleted': 1},
 #                        {'uuid': '0123456713', 'author': '', 'message': 'yqwef4',
-#                            'like': 4, 'timestamp': T, 'is_deleted': 1},
-#                        {'uuid': '0123456711', 'author': '', 'message': '', 'like': -1, 'timestamp': T, 'is_deleted': 1}]}
+#                            'likes': 4, 'timestamp': T, 'is_deleted': 1},
+#                        {'uuid': '0123456711', 'author': '', 'message': '', 'likes': -1, 'timestamp': T, 'is_deleted': 1}]}
 
 #create and update
-# response = {'create': [{'uuid': '0123456715', 'author': 'testname6', 'message': 'testmessage6', 'like': 0, 'timestamp': T}],
-#             'update': [{'uuid': '0123456714', 'author': '', 'message': 'krthdf5', 'like': 10, 'timestamp': T, 'is_deleted': 0}]}
+# response = {'create': [{'uuid': '0123456715', 'author': 'testname6', 'message': 'testmessage6', 'likes': 0, 'timestamp': T}],
+#             'update': [{'uuid': '0123456714', 'author': '', 'message': 'krthdf5', 'likes': 10, 'timestamp': T, 'is_deleted': 0}]}
 
 #create and delete
-# response = {'create': [{'uuid': '0123456716', 'author': 'testname7', 'message': 'testmessage7', 'like': 0, 'timestamp': T}],
-#             'update': [{'uuid': '0123456714', 'author': '', 'message': 'krthdf5', 'like': 10, 'timestamp': T, 'is_deleted': 1}]}
+# response = {'create': [{'uuid': '0123456716', 'author': 'testname7', 'message': 'testmessage7', 'likes': 0, 'timestamp': T}],
+#             'update': [{'uuid': '0123456714', 'author': '', 'message': 'krthdf5', 'likes': 10, 'timestamp': T, 'is_deleted': 1}]}
 
 
 def find(name):
@@ -63,8 +63,8 @@ def update_n_delete(df_saved, update):
             continue
         if len(str(row['message'])) > 0:
             df_saved.loc[index, 'message'] = row['message']
-        if row['like'] != -1:
-            df_saved.loc[index, 'like'] = row['like']
+        if row['likes'] != -1:
+            df_saved.loc[index, 'likes'] = row['likes']
         df_saved.loc[index, 'timestamp'] = row['timestamp']
 
     return df_saved
@@ -87,7 +87,7 @@ def sync(endpoint):
 
     if path is not None:
         data_saved = pd.read_csv(path, dtype={'uuid': str},
-                                 names=["uuid", "author", "message", "like", "timestamp", "is_deleted"])
+                                 names=["uuid", "author", "message", "likes", "timestamp", "is_deleted"])
         data_saved.set_index('uuid', inplace=True)
         timestamp = open("timestamp.txt", 'r').read()
 
@@ -97,17 +97,20 @@ def sync(endpoint):
 
     params = {'timestamp': timestamp}
     headers = {'Content-type': 'application/json; charset=utf-8'}
-    json_response = requests.get(url=endpoint, params=params, headers=headers)
-    print(json_response)
-    response = json.loads(json_response)
+    # json_response = requests.get(url=endpoint, params=params, headers=headers)
+    json_response = requests.get(endpoint)
+    response = json_response.json()
 
-    data_saved = add_new(data_saved, response['create'])
-    data_saved = update_n_delete(data_saved, response['update'])
+    data_saved = add_new(data_saved, response['messages'])
+    data_saved = update_n_delete(data_saved, response['updates'])
     data_saved.to_csv('response.csv', header=False, index=True)
 
 
 def main(url):
     sync(url)
+    # print(url)
+    # json_response = requests.get(url=url)
+    # print(json_response.json()['messages'])
 
 
 main(sys.argv[1])

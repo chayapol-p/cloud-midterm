@@ -33,6 +33,7 @@ class CustomEC2:
             )],
             vpc=vpc,
             security_group=sec_group,
+            key_name="cp_learning"
         )
 
         # Script in S3 as Asset

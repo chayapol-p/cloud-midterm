@@ -18,17 +18,17 @@ create user admin with superuser encrypted password 'admin';
 grant all privileges on database mydatabase to admin;" | sudo -u postgres psql
 
 echo "\c mydatabase
-CREATE TABLE messages ( uuid CHAR (36) PRIMARY KEY,
+CREATE TABLE messages ( uuid CHAR(36) PRIMARY KEY NOT NULL,
 timestamp TIMESTAMP WITH TIME ZONE NULL,
-author VARCHAR (64) NOT NULL,
-message VARCHAR (1024) NOT NULL,
+author VARCHAR(64) NOT NULL,
+message VARCHAR(1024) NOT NULL,
 likes INT NOT NULL);" | sudo -u postgres psql
 
 echo "\c mydatabase
-CREATE TABLE updated_messages ( uuid CHAR (36) PRIMARY KEY,
-timestamp TIMESTAMP WITH TIME ZONE NULL,
-author VARCHAR (64) NOT NULL,
-message VARCHAR (1024) NOT NULL,
+CREATE TABLE updated_messages ( uuid CHAR(36) PRIMARY KEY NOT NULL,
+timestamp TIMESTAMP WITH TIME ZONE NOT NULL,
+author VARCHAR(64) NOT NULL,
+message VARCHAR(1024) NOT NULL,
 likes INT NOT NULL,
 is_deleted BOOLEAN NOT NULL );" | sudo -u postgres psql
 

@@ -5,7 +5,6 @@ import os
 from datetime import timezone
 import datetime
 import json
-import numpy as np
 from time import perf_counter
 
 # T = '2022-03-18T09:50:10.568317+00:00'
@@ -81,7 +80,7 @@ def add_new(df_saved, create):
 def sync(endpoint):
     path = find('response.csv')
     data_saved = pd.DataFrame()
-    timestamp = '0'
+    timestamp = '0001-01-01T00:00:00'
 
     if path is not None:
         data_saved = pd.read_csv(path, dtype={'uuid': str},
@@ -94,10 +93,8 @@ def sync(endpoint):
     f.write(datetime.datetime.now(timezone.utc).isoformat())
     f.close()
 
-    params = {'timestamp': timestamp}
-    headers = {'Content-type': 'application/json; charset=utf-8'}
-    # json_response = requests.get(url=endpoint, params=params, headers=headers)
-    json_response = requests.get(endpoint)
+    # params = {'timestamp': timestamp}
+    json_response = requests.get(url=endpoint+timestamp)  # send param
     response = json_response.json()
 
     data_saved = add_new(data_saved, response['messages'])

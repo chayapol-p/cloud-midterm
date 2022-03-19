@@ -1,4 +1,3 @@
-from urllib import response
 import requests
 import pandas as pd
 import sys
@@ -6,41 +5,41 @@ import os
 from datetime import timezone
 import datetime
 import json
-
+import numpy as np
+from time import perf_counter
 
 # T = '2022-03-18T09:50:10.568317+00:00'
-# # first
-# response = {'create': [{'uuid': '0123456710', 'author': 'testname1', 'message': 'testmessage1', 'likes': 0, 'timestamp': T},
-#                        {'uuid': '0123456711', 'author': 'testname2', 'message': 'testmessage2',
-#                            'likes': 1, 'timestamp': T},
-#                        {'uuid': '0123456712', 'author': 'testname3', 'message': 'testmessage3',
-#                            'likes': 2, 'timestamp': T},
-#                        {'uuid': '0123456713', 'author': 'testname4', 'message': 'testmessage4',
-#                            'likes': 3, 'timestamp': T},
-#                        {'uuid': '0123456714', 'author': 'testname5', 'message': 'testmessage5', 'likes': 4, 'timestamp': T}],
-#             'update': []}
+# first
+# response = {'messages': [{'uuid': '0123456710', 'author': 'testname1', 'message': 'testmessage1', 'likes': 0},
+#                          {'uuid': '0123456711', 'author': 'testname2', 'message': 'testmessage2',
+#                           'likes': 1},
+#                          {'uuid': '0123456712', 'author': 'testname3', 'message': 'testmessage3',
+#                           'likes': 2},
+#                          {'uuid': '0123456713', 'author': 'testname4', 'message': 'testmessage4',
+#                           'likes': 3},
+#                          {'uuid': '0123456714', 'author': 'testname5', 'message': 'testmessage5', 'likes': 4}],
+#             'updates': []}
 
 # only update
-# response = {'create': [],
-#             'update': [{'uuid': '0123456712', 'author': '', 'message': 'asdf3', 'likes': 3, 'timestamp': T, 'is_deleted': 0},
-#                        {'uuid': '0123456713', 'author': '', 'message': 'yqwef4', 'likes': 4,
-#                            'timestamp': T, 'is_deleted': 0},
-#                        {'uuid': '0123456711', 'author': '', 'message': '', 'likes': -1, 'timestamp': T, 'is_deleted': 0}]}
+# response = {'messages': [],
+#             'updates': [{'uuid': '0123456712', 'author': '', 'message': 'asdf3', 'likes': 3, 'is_deleted': 0},
+#                         {'uuid': '0123456713', 'author': '', 'message': 'yqwef4', 'likes': 4, 'is_deleted': 0},
+#                         {'uuid': '0123456711', 'author': '', 'message': '', 'likes': -1, 'is_deleted': 0}]}
 
 # only delete
-# response = {'create': [],
-#             'update': [{'uuid': '0123456712', 'author': '', 'message': 'asdf3', 'likes': 3, 'timestamp': T, 'is_deleted': 1},
-#                        {'uuid': '0123456713', 'author': '', 'message': 'yqwef4',
-#                            'likes': 4, 'timestamp': T, 'is_deleted': 1},
-#                        {'uuid': '0123456711', 'author': '', 'message': '', 'likes': -1, 'timestamp': T, 'is_deleted': 1}]}
+# response = {'messages': [],
+#             'updates': [{'uuid': '0123456712', 'author': '', 'message': 'asdf3', 'likes': 3, 'is_deleted': 1},
+#                         {'uuid': '0123456713', 'author': '', 'message': 'yqwef4',
+#                          'likes': 4, 'is_deleted': 1},
+#                         {'uuid': '0123456711', 'author': '', 'message': '', 'likes': -1, 'is_deleted': 1}]}
 
 #create and update
-# response = {'create': [{'uuid': '0123456715', 'author': 'testname6', 'message': 'testmessage6', 'likes': 0, 'timestamp': T}],
-#             'update': [{'uuid': '0123456714', 'author': '', 'message': 'krthdf5', 'likes': 10, 'timestamp': T, 'is_deleted': 0}]}
+# response = {'messages': [{'uuid': '0123456715', 'author': 'testname6', 'message': 'testmessage6', 'likes': 0}],
+#             'updates': [{'uuid': '0123456714', 'author': '', 'message': 'krthdf5', 'likes': 10, 'is_deleted': 0}]}
 
 #create and delete
-# response = {'create': [{'uuid': '0123456716', 'author': 'testname7', 'message': 'testmessage7', 'likes': 0, 'timestamp': T}],
-#             'update': [{'uuid': '0123456714', 'author': '', 'message': 'krthdf5', 'likes': 10, 'timestamp': T, 'is_deleted': 1}]}
+# response = {'messages': [{'uuid': '0123456716', 'author': 'testname7', 'message': 'testmessage7', 'likes': 0}],
+#             'updates': [{'uuid': '0123456714', 'author': '', 'message': 'krthdf5', 'likes': 10, 'is_deleted': 1}]}
 
 
 def find(name):
@@ -57,7 +56,6 @@ def update_n_delete(df_saved, update):
     df_update.set_index('uuid', inplace=True)
 
     for index, row in df_update.iterrows():
-        # print(index, row['uuid'], row['is_deleted'])
         if row['is_deleted'] == 1:
             if index in df_saved.index:
                 df_saved.drop(index, inplace=True)
@@ -66,7 +64,6 @@ def update_n_delete(df_saved, update):
             df_saved.loc[index, 'message'] = row['message']
         if row['likes'] != -1:
             df_saved.loc[index, 'likes'] = row['likes']
-        df_saved.loc[index, 'timestamp'] = row['timestamp']
 
     return df_saved
 
@@ -88,7 +85,8 @@ def sync(endpoint):
 
     if path is not None:
         data_saved = pd.read_csv(path, dtype={'uuid': str},
-                                 names=["uuid", "author", "message", "likes", "timestamp", "is_deleted"])
+                                 names=["uuid", "author", "message", "likes"])
+
         data_saved.set_index('uuid', inplace=True)
         timestamp = open("timestamp.txt", 'r').read()
 
@@ -108,10 +106,11 @@ def sync(endpoint):
 
 
 def main(url):
+    t1_start = perf_counter()
     sync(url)
-    # print(url)
-    # json_response = requests.get(url=url)
-    # print(json_response.json()['messages'])
+    t1_stop = perf_counter()
+    print("Elapsed time during the whole program in seconds:",
+          t1_stop-t1_start)
 
 
 main(sys.argv[1])

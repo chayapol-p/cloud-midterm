@@ -11,15 +11,15 @@ type UpdatedMessageQueries struct {
 }
 
 // GetMessages method for getting all messages.
-func (q *UpdatedMessageQueries) GetUpdates() ([]models.OutputUpdatedMessage, error) {
+func (q *UpdatedMessageQueries) GetUpdates(time string) ([]models.OutputUpdatedMessage, error) {
 	// Define messages variable.
 	updates := []models.OutputUpdatedMessage{}
 
 	// Define query string.
-	query := `SELECT uuid, author, message, likes, is_deleted FROM updated_messages`
+	query := `SELECT uuid, author, message, likes, is_deleted FROM updated_messages Where timestamp > $1`
 
 	// Send query to database.
-	err := q.Select(&updates, query)
+	err := q.Select(&updates, query, time)
 	if err != nil {
 		// Return empty object and error.
 		return updates, err

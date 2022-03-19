@@ -34,7 +34,7 @@ func GetMessages(c *fiber.Ctx) error {
 	}
 
 	// Get all updates.
-	updates, err := db.GetUpdates()
+	updates, err := db.GetUpdates(c.Params("timestamp"))
 	if err != nil {
 		// Return, if messages not found.
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{

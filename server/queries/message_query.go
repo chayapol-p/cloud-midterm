@@ -16,10 +16,10 @@ func (q *MessageQueries) GetMessages(time string) ([]models.OutputMessage, error
 	messages := []models.OutputMessage{}
 
 	// Define query string.
-	query := `SELECT uuid, author, message, likes FROM messages as m where m.timestamp > timestamp $1`
+	query := `SELECT uuid, author, message, likes FROM messages as m WHERE timestamp > $1`
 
 	// Send query to database.
-	err := q.Select(&messages, query)
+	err := q.Select(&messages, query, time)
 	if err != nil {
 		// Return empty object and error.
 		return messages, err

@@ -52,6 +52,7 @@ def update_n_delete(df_saved, update):
         return df_saved
 
     df_update = pd.DataFrame(update)
+    df_saved.set_index('uuid', inplace=True)
     df_update.set_index('uuid', inplace=True)
 
     for index, row in df_update.iterrows():
@@ -93,12 +94,21 @@ def sync(endpoint):
     f.write(datetime.datetime.now(timezone.utc).isoformat())
     f.close()
 
-    # params = {'timestamp': timestamp}
-    json_response = requests.get(url=endpoint+timestamp)  # send param
-    response = json_response.json()
+    i = 0
+    limit = 100000
 
-    data_saved = add_new(data_saved, response['messages'])
-    data_saved = update_n_delete(data_saved, response['updates'])
+    while True:
+        query = {'offset': i, 'limit': limit}
+        i += limit
+        json_response = requests.get(
+            url=endpoint+timestamp, params=query)  # send param
+        response = json_response.json()
+        if len(response['messages']) == 0 and len(response['updates'] == 0):
+            break
+
+        data_saved = add_new(data_saved, response['messages'])
+        data_saved = update_n_delete(data_saved, response['updates'])
+
     data_saved.to_csv('response.csv', header=False, index=True)
 
 

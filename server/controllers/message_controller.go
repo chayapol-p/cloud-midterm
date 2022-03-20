@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -9,19 +10,21 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-func GetMessages(c *fiber.Ctx) error {
+var DB *database.Queries
+var err error
+
+func InitialDB() {
 	// Create database connection.
-	db, err := database.OpenDBConnection()
+	DB, err = database.OpenDBConnection()
 	if err != nil {
-		// Return status 500 and database connection error.
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": true,
-			"msg":   err.Error(),
-		})
+		fmt.Println(err.Error())
 	}
+}
+
+func GetMessages(c *fiber.Ctx) error {
 
 	// Get all messages.
-	messages, err := db.GetMessages(c.Params("timestamp"))
+	messages, err := DB.GetMessages(c.Params("timestamp"), c.Query("offset"), c.Query("limit"))
 	if err != nil {
 		// Return, if messages not found.
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
@@ -34,7 +37,7 @@ func GetMessages(c *fiber.Ctx) error {
 	}
 
 	// Get all updates.
-	updates, err := db.GetUpdates(c.Params("timestamp"))
+	updates, err := DB.GetUpdates(c.Params("timestamp"), c.Query("offset"), c.Query("limit"))
 	if err != nil {
 		// Return, if messages not found.
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
@@ -46,35 +49,37 @@ func GetMessages(c *fiber.Ctx) error {
 		})
 	}
 
-	for i := len(updates) - 1; i >= 0; i-- {
-		if updates[i].IsDeleted {
+	formatted_messages := make([]models.OutputMessage, len(messages))
+	for j := 0; j < len(messages); j++ {
+		formatted_message := models.OutputMessage{messages[j].UUID, messages[j].Author, messages[j].Message, messages[j].Likes}
+		formatted_messages[j] = formatted_message
+		if !messages[j].UpdatedAuthor.Valid {
+			// This mean this id have no update
 			continue
-		}
-		for j := 0; j < len(messages); j++ {
-			if updates[i].UUID == messages[j].UUID {
-				if updates[i].Author != "" {
-					fmt.Println("Changed Author")
-					messages[j].Author = updates[i].Author
-				}
-				if updates[i].Message != "" {
-					messages[j].Message = updates[i].Message
-				}
-				if updates[i].Likes != -1 {
-					messages[j].Likes = updates[i].Likes
-				}
-				updates = append(updates[:i], updates[i+1:]...)
-				break
+		} else {
+			if messages[j].UpdatedAuthor.String != "" {
+				fmt.Println("Changed Author")
+				formatted_messages[j].Author = messages[j].UpdatedAuthor.String
+			}
+			if messages[j].UpdatedMessage.String != "" {
+				formatted_messages[j].Message = messages[j].UpdatedMessage.String
+			}
+			if messages[j].UpdatedLikes.Int32 != -1 {
+				formatted_messages[j].Likes = int(messages[j].UpdatedLikes.Int32)
 			}
 		}
 	}
 
+	fmt.Printf("Query pass")
+
 	// Return status 200 OK.
-	return c.JSON(fiber.Map{
-		"error":    false,
-		"msg":      nil,
-		"count":    len(messages),
-		"messages": messages,
-		"updates":  updates,
+	return json.NewEncoder(c.Type("json", "utf-8").Response().BodyWriter()).Encode(fiber.Map{
+		"error":         false,
+		"msg":           nil,
+		"count_message": len(formatted_messages),
+		"count_update":  len(updates),
+		"messages":      formatted_messages,
+		"updates":       updates,
 	})
 }
 
@@ -91,38 +96,28 @@ func CreateMessage(c *fiber.Ctx) error {
 		})
 	}
 
-	// Create database connection.
-	db, err := database.OpenDBConnection()
-	if err != nil {
-		// Return status 500 and database connection error.
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": true,
-			"msg":   err.Error(),
-		})
-	}
-
 	// Set initialized default data for message:
 	message.Timestamp = time.Now().UTC()
 
-	// Checking, if message with given ID is exists.
-	if _, err := db.GetMessage(message.UUID); err == nil {
-		// Return status 404 and message not found error.
-		return c.Status(fiber.StatusConflict).JSON(fiber.Map{
-			"error": true,
-			"msg":   "message with this UUID is already existed",
-		})
-	}
+	// // Checking, if message with given ID is exists.
+	// if _, err := DB.GetMessage(message.UUID); err == nil {
+	// 	// Return status 404 and message not found error.
+	// 	return c.Status(fiber.StatusConflict).JSON(fiber.Map{
+	// 		"error": true,
+	// 		"msg":   "message with this UUID is already existed",
+	// 	})
+	// }
 
-	// Checking, if message with given ID is exists.
-	if _, err := db.GetUpdate(message.UUID); err == nil {
-		// Return status 404 and message not found error.
-		return c.Status(fiber.StatusConflict).JSON(fiber.Map{
-			"error": true,
-			"msg":   "message with this UUID is already existed and deleted.",
-		})
-	}
+	// // Checking, if message with given ID is exists.
+	// if _, err := DB.GetUpdate(message.UUID); err == nil {
+	// 	// Return status 404 and message not found error.
+	// 	return c.Status(fiber.StatusConflict).JSON(fiber.Map{
+	// 		"error": true,
+	// 		"msg":   "message with this UUID is already existed and deleted.",
+	// 	})
+	// }
 
-	if err := db.CreateMessage(message); err != nil {
+	if err := DB.CreateMessage(message); err != nil {
 		// Return status 500 and error message.
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": true,
@@ -151,18 +146,8 @@ func UpdateMessage(c *fiber.Ctx) error {
 		})
 	}
 
-	// Create database connection.
-	db, err := database.OpenDBConnection()
-	if err != nil {
-		// Return status 500 and database connection error.
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": true,
-			"msg":   err.Error(),
-		})
-	}
-
 	// Checking, if message with given ID is exists.
-	foundedMessage, err := db.GetMessage(uuid)
+	foundedMessage, err := DB.GetMessage(uuid)
 	if err != nil {
 		// Return status 404 and message not found error.
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
@@ -173,7 +158,7 @@ func UpdateMessage(c *fiber.Ctx) error {
 
 	update_founded := true
 	// Merging if already changed
-	foundedUpdate, err := db.GetUpdate(uuid)
+	foundedUpdate, err := DB.GetUpdate(uuid)
 	if err != nil {
 		// If not been updated, Create blank update
 		update_founded = false
@@ -216,7 +201,7 @@ func UpdateMessage(c *fiber.Ctx) error {
 	}
 
 	if update_founded {
-		if err := db.UpdateUpdate(uuid, &new_update); err != nil {
+		if err := DB.UpdateUpdate(uuid, &new_update); err != nil {
 			// Return status 500 and error message.
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 				"error": true,
@@ -225,7 +210,7 @@ func UpdateMessage(c *fiber.Ctx) error {
 		}
 	} else {
 		// Update message by given ID.
-		if err := db.CreateUpdate(&new_update); err != nil {
+		if err := DB.CreateUpdate(&new_update); err != nil {
 			// Return status 500 and error message.
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 				"error": true,
@@ -242,38 +227,21 @@ func DeleteMessage(c *fiber.Ctx) error {
 
 	uuid := c.Params("uuid")
 
-	// Create database connection.
-	db, err := database.OpenDBConnection()
-	if err != nil {
-		// Return status 500 and database connection error.
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": true,
-			"msg":   err.Error(),
-		})
-	}
-
-	// Checking, if message with given ID is exists.
-	if _, err := db.GetMessage(uuid); err != nil {
-		// Return status 404 and message not found error.
-		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-			"error": true,
-			"msg":   "message with this ID not found",
-		})
-	}
-
+	fmt.Printf("Deleting\n")
 	// Delete message by given ID.
-	if err := db.DeleteMessage(uuid); err != nil {
+	if err := DB.DeleteMessage(uuid); err != nil {
 		// Return status 500 and error message.
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": true,
 			"msg":   err.Error(),
 		})
 	}
+	fmt.Printf("Deleted\n")
 
 	//Set Delete flag to update
 	new_update := models.UpdatedMessage{uuid, time.Now(), "", "", -1, true}
-	if _, err := db.GetUpdate(uuid); err != nil {
-		if err := db.CreateUpdate(&new_update); err != nil {
+	if _, err := DB.GetUpdate(uuid); err != nil {
+		if err := DB.CreateUpdate(&new_update); err != nil {
 			// Return status 500 and error message.
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 				"error": true,
@@ -282,7 +250,7 @@ func DeleteMessage(c *fiber.Ctx) error {
 		}
 		// If not been updated, Create blank update with deleted
 	} else {
-		if err := db.UpdateUpdate(uuid, &new_update); err != nil {
+		if err := DB.UpdateUpdate(uuid, &new_update); err != nil {
 			// Return status 500 and error message.
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 				"error": true,

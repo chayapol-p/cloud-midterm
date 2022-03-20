@@ -33,6 +33,9 @@ func MessagesRoute(app *fiber.App) {
 func main() {
 	app := fiber.New()
 	app.Get("/", hello)
+
+	controllers.InitialDB()
+
 	MessagesRoute(app)
 	SwaggerRoute(app)
 	app.Listen(":3000")

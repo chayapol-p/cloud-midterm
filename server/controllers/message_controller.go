@@ -49,26 +49,38 @@ func GetMessages(c *fiber.Ctx) error {
 		})
 	}
 
-	formatted_messages := make([]models.OutputMessage, len(messages))
-	for j := 0; j < len(messages); j++ {
-		formatted_message := models.OutputMessage{messages[j].UUID, messages[j].Author, messages[j].Message, messages[j].Likes}
-		formatted_messages[j] = formatted_message
-		if !messages[j].UpdatedAuthor.Valid {
-			// This mean this id have no update
-			continue
-		} else {
-			if messages[j].UpdatedAuthor.String != "" {
-				fmt.Println("Changed Author")
-				formatted_messages[j].Author = messages[j].UpdatedAuthor.String
-			}
-			if messages[j].UpdatedMessage.String != "" {
-				formatted_messages[j].Message = messages[j].UpdatedMessage.String
-			}
-			if messages[j].UpdatedLikes.Int32 != -1 {
-				formatted_messages[j].Likes = int(messages[j].UpdatedLikes.Int32)
-			}
-		}
+	deletes, err := DB.GetDeletes(c.Params("timestamp"), c.Query("offset"), c.Query("limit"))
+	if err != nil {
+		// Return, if messages not found.
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"error":    true,
+			"msg":      "deletes were not found",
+			"count":    0,
+			"messages": nil,
+			"err":      err.Error(),
+		})
 	}
+
+	// formatted_messages := make([]models.OutputMessage, len(messages))
+	// for j := 0; j < len(messages); j++ {
+	// 	formatted_message := models.OutputMessage{messages[j].UUID, messages[j].Author, messages[j].Message, messages[j].Likes}
+	// 	formatted_messages[j] = formatted_message
+	// 	if !messages[j].UpdatedAuthor.Valid {
+	// 		// This mean this id have no update
+	// 		continue
+	// 	} else {
+	// 		if messages[j].UpdatedAuthor.String != "" {
+	// 			fmt.Println("Changed Author")
+	// 			formatted_messages[j].Author = messages[j].UpdatedAuthor.String
+	// 		}
+	// 		if messages[j].UpdatedMessage.String != "" {
+	// 			formatted_messages[j].Message = messages[j].UpdatedMessage.String
+	// 		}
+	// 		if messages[j].UpdatedLikes.Int32 != -1 {
+	// 			formatted_messages[j].Likes = int(messages[j].UpdatedLikes.Int32)
+	// 		}
+	// 	}
+	// }
 
 	fmt.Printf("Query pass")
 
@@ -76,9 +88,10 @@ func GetMessages(c *fiber.Ctx) error {
 	return json.NewEncoder(c.Type("json", "utf-8").Response().BodyWriter()).Encode(fiber.Map{
 		"error":         false,
 		"msg":           nil,
-		"count_message": len(formatted_messages),
+		"count_message": len(messages),
 		"count_update":  len(updates),
-		"messages":      formatted_messages,
+		"deletes": 		 deletes,
+		"messages":      messages,
 		"updates":       updates,
 	})
 }

@@ -45,5 +45,4 @@ type OutputUpdatedMessage struct {
 	Author    string `db:"author" json:"author"`
 	Message   string `db:"message" json:"message"`
 	Likes     int    `db:"likes" json:"likes"`
-	IsDeleted bool   `db:"is_deleted" json:"is_deleted"`
 }

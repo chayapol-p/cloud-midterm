@@ -23,77 +23,76 @@ func InitialDB() {
 
 func GetMessages(c *fiber.Ctx) error {
 
-	// Get all messages.
-	messages, err := DB.GetMessages(c.Params("timestamp"), c.Query("offset"), c.Query("limit"))
-	if err != nil {
-		// Return, if messages not found.
-		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-			"error":    true,
-			"msg":      "messages were not found",
-			"count":    0,
-			"messages": nil,
-			"err":      err.Error(),
+	table := c.Query("table")
+	if table == "messages" {
+		// Get all messages.
+		query_data, err := DB.GetMessages(c.Params("timestamp"), c.Query("offset"), c.Query("limit"))
+		if err != nil {
+			// Return, if messages not found.
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+				"error":    true,
+				"msg":      "messages were not found",
+				"count":    0,
+				"messages": nil,
+				"err":      err.Error(),
+			})
+		}
+		// Return status 200 OK.
+		return json.NewEncoder(c.Type("json", "utf-8").Response().BodyWriter()).Encode(fiber.Map{
+			"error":         false,
+			"msg":           nil,
+			"count_query_data":  len(query_data),
+			"query_data": 		 query_data,
+		})
+	} else if table == "updates" {
+		// Get all updates.
+		query_data, err := DB.GetUpdates(c.Params("timestamp"), c.Query("offset"), c.Query("limit"))
+		if err != nil {
+			// Return, if messages not found.
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+				"error":    true,
+				"msg":      "updates were not found",
+				"count":    0,
+				"messages": nil,
+				"err":      err.Error(),
+			})
+		}
+		// Return status 200 OK.
+		return json.NewEncoder(c.Type("json", "utf-8").Response().BodyWriter()).Encode(fiber.Map{
+			"error":         false,
+			"msg":           nil,
+			"count_query_data":  len(query_data),
+			"query_data": 		 query_data,
+		})
+	} else if table == "deletes" {
+		query_data, err := DB.GetDeletes(c.Params("timestamp"), c.Query("offset"), c.Query("limit"))
+		if err != nil {
+			// Return, if messages not found.
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+				"error":    true,
+				"msg":      "deletes were not found",
+				"count":    0,
+				"messages": nil,
+				"err":      err.Error(),
+			})
+		}
+		// Return status 200 OK.
+		return json.NewEncoder(c.Type("json", "utf-8").Response().BodyWriter()).Encode(fiber.Map{
+			"error":         false,
+			"msg":           nil,
+			"count_query_data":  len(query_data),
+			"query_data": 		 query_data,
 		})
 	}
 
-	// Get all updates.
-	updates, err := DB.GetUpdates(c.Params("timestamp"), c.Query("offset"), c.Query("limit"))
-	if err != nil {
-		// Return, if messages not found.
-		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-			"error":    true,
-			"msg":      "updates were not found",
-			"count":    0,
-			"messages": nil,
-			"err":      err.Error(),
-		})
-	}
-
-	deletes, err := DB.GetDeletes(c.Params("timestamp"), c.Query("offset"), c.Query("limit"))
-	if err != nil {
-		// Return, if messages not found.
-		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-			"error":    true,
-			"msg":      "deletes were not found",
-			"count":    0,
-			"messages": nil,
-			"err":      err.Error(),
-		})
-	}
-
-	// formatted_messages := make([]models.OutputMessage, len(messages))
-	// for j := 0; j < len(messages); j++ {
-	// 	formatted_message := models.OutputMessage{messages[j].UUID, messages[j].Author, messages[j].Message, messages[j].Likes}
-	// 	formatted_messages[j] = formatted_message
-	// 	if !messages[j].UpdatedAuthor.Valid {
-	// 		// This mean this id have no update
-	// 		continue
-	// 	} else {
-	// 		if messages[j].UpdatedAuthor.String != "" {
-	// 			fmt.Println("Changed Author")
-	// 			formatted_messages[j].Author = messages[j].UpdatedAuthor.String
-	// 		}
-	// 		if messages[j].UpdatedMessage.String != "" {
-	// 			formatted_messages[j].Message = messages[j].UpdatedMessage.String
-	// 		}
-	// 		if messages[j].UpdatedLikes.Int32 != -1 {
-	// 			formatted_messages[j].Likes = int(messages[j].UpdatedLikes.Int32)
-	// 		}
-	// 	}
-	// }
-
-	fmt.Printf("Query pass")
-
-	// Return status 200 OK.
-	return json.NewEncoder(c.Type("json", "utf-8").Response().BodyWriter()).Encode(fiber.Map{
-		"error":         false,
-		"msg":           nil,
-		"count_message": len(messages),
-		"count_update":  len(updates),
-		"deletes": 		 deletes,
-		"messages":      messages,
-		"updates":       updates,
+	return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+		"error":    true,
+		"msg":      "table was not found",
+		"count_query_data":    0,
+		"query_data": nil,
+		"err":      err.Error(),
 	})
+	
 }
 
 func CreateMessage(c *fiber.Ctx) error {
@@ -111,24 +110,6 @@ func CreateMessage(c *fiber.Ctx) error {
 
 	// Set initialized default data for message:
 	message.Timestamp = time.Now().UTC()
-
-	// // Checking, if message with given ID is exists.
-	// if _, err := DB.GetMessage(message.UUID); err == nil {
-	// 	// Return status 404 and message not found error.
-	// 	return c.Status(fiber.StatusConflict).JSON(fiber.Map{
-	// 		"error": true,
-	// 		"msg":   "message with this UUID is already existed",
-	// 	})
-	// }
-
-	// // Checking, if message with given ID is exists.
-	// if _, err := DB.GetUpdate(message.UUID); err == nil {
-	// 	// Return status 404 and message not found error.
-	// 	return c.Status(fiber.StatusConflict).JSON(fiber.Map{
-	// 		"error": true,
-	// 		"msg":   "message with this UUID is already existed and deleted.",
-	// 	})
-	// }
 
 	if err := DB.CreateMessage(message); err != nil {
 		// Return status 500 and error message.

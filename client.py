@@ -46,21 +46,54 @@ def sync(endpoint):
 
     updates, messages, deletes = [], [], []
     while True:
-        query = {'offset': i, 'limit': limit}
+        print('Getting Messages...')
+        query = {'offset': i, 'limit': limit, 'table': 'messages'}
         i += limit
         json_response = requests.get(
             url=endpoint+timestamp, params=query)  # send param
 
         response = json_response.json()
-        updates += response['updates']
-        messages += response['messages']
-        deletes += response['deletes']
+        messages += response['query_data']
 
         tc_stop = perf_counter()
         print("loop:", i, ":Elapsed time during the whole program in seconds:",
               tc_stop-t1_start)
 
-        if len(response['messages']) == 0 and len(response['updates']) == 0:
+        if len(response['query_data']) == 0:
+            break
+
+    while True:
+        print('Getting Updates...')
+        query = {'offset': i, 'limit': limit, 'table': 'updates'}
+        i += limit
+        json_response = requests.get(
+            url=endpoint+timestamp, params=query)  # send param
+
+        response = json_response.json()
+        updates += response['query_data']
+
+        tc_stop = perf_counter()
+        print("loop:", i, ":Elapsed time during the whole program in seconds:",
+              tc_stop-t1_start)
+
+        if len(response['query_data']):
+            break
+
+    while True:
+        print('Getting Deleted...')
+        query = {'offset': i, 'limit': limit, 'table': 'deletes'}
+        i += limit
+        json_response = requests.get(
+            url=endpoint+timestamp, params=query)  # send param
+
+        response = json_response.json()
+        deletes += response['query_data']
+
+        tc_stop = perf_counter()
+        print("loop:", i, ":Elapsed time during the whole program in seconds:",
+              tc_stop-t1_start)
+
+        if len(response['query_data']):
             break
 
     t2_stop = perf_counter()
@@ -79,16 +112,15 @@ def sync(endpoint):
     df_update = pd.DataFrame(
         updates, columns=['uuid', 'author', 'message', 'likes'])
 
-    df_merge = data_saved.merge(df_update[[
+    data_saved = data_saved.merge(df_update[[
                                 'uuid', 'author', 'message', 'likes']], on='uuid', how='left', suffixes=('_', ''))
-    df_merge.replace('', np.nan, inplace=True)
-    df_merge.replace(-1.0, np.nan, inplace=True)
+    data_saved.replace('', np.nan, inplace=True)
+    data_saved.replace(-1.0, np.nan, inplace=True)
 
-    update_value(df_merge, df_merge['author_'].values, df_merge['message_'].values, df_merge['likes_'].values,
-                 df_merge['author'].values, df_merge['message'].values, df_merge['likes'].values)
-    df_merge.drop(columns=['author_', 'message_', 'likes_'], inplace=True)
-    df_merge['likes'] = df_merge['likes'].astype(int)
-    data_saved = df_merge
+    update_value(data_saved, data_saved['author_'].values, data_saved['message_'].values, data_saved['likes_'].values,
+                 data_saved['author'].values, data_saved['message'].values, data_saved['likes'].values)
+    data_saved.drop(columns=['author_', 'message_', 'likes_'], inplace=True)
+    data_saved['likes'] = data_saved['likes'].astype(int)
 
     t3_stop = perf_counter()
     print("merging:Elapsed time during the whole program in seconds:",

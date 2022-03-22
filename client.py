@@ -42,11 +42,11 @@ def sync(endpoint):
     f.close()
 
     i = 0
-    limit = 70000
+    limit = 140000
 
     updates, messages, deletes = [], [], []
+    print('Getting Messages...')
     while True:
-        print('Getting Messages...')
         query = {'offset': i, 'limit': limit, 'table': 'messages'}
         i += limit
         json_response = requests.get(
@@ -59,11 +59,12 @@ def sync(endpoint):
         print("loop:", i, ":Elapsed time during the whole program in seconds:",
               tc_stop-t1_start)
 
-        if len(response['query_data']) == 0:
+        if not response['query_data']:
             break
-
+    
+    i = 0
+    print('Getting Updates...')
     while True:
-        print('Getting Updates...')
         query = {'offset': i, 'limit': limit, 'table': 'updates'}
         i += limit
         json_response = requests.get(
@@ -76,11 +77,12 @@ def sync(endpoint):
         print("loop:", i, ":Elapsed time during the whole program in seconds:",
               tc_stop-t1_start)
 
-        if len(response['query_data']):
+        if not response['query_data']:
             break
 
+    i = 0
+    print('Getting Deleted...')
     while True:
-        print('Getting Deleted...')
         query = {'offset': i, 'limit': limit, 'table': 'deletes'}
         i += limit
         json_response = requests.get(
@@ -93,7 +95,7 @@ def sync(endpoint):
         print("loop:", i, ":Elapsed time during the whole program in seconds:",
               tc_stop-t1_start)
 
-        if len(response['query_data']):
+        if not response['query_data']:
             break
 
     t2_stop = perf_counter()

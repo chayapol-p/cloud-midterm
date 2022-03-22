@@ -39,10 +39,10 @@ func GetMessages(c *fiber.Ctx) error {
 		}
 		// Return status 200 OK.
 		return json.NewEncoder(c.Type("json", "utf-8").Response().BodyWriter()).Encode(fiber.Map{
-			"error":         false,
-			"msg":           nil,
-			"count_query_data":  len(query_data),
-			"query_data": 		 query_data,
+			"error":            false,
+			"msg":              nil,
+			"count_query_data": len(query_data),
+			"query_data":       query_data,
 		})
 	} else if table == "updates" {
 		// Get all updates.
@@ -59,10 +59,10 @@ func GetMessages(c *fiber.Ctx) error {
 		}
 		// Return status 200 OK.
 		return json.NewEncoder(c.Type("json", "utf-8").Response().BodyWriter()).Encode(fiber.Map{
-			"error":         false,
-			"msg":           nil,
-			"count_query_data":  len(query_data),
-			"query_data": 		 query_data,
+			"error":            false,
+			"msg":              nil,
+			"count_query_data": len(query_data),
+			"query_data":       query_data,
 		})
 	} else if table == "deletes" {
 		query_data, err := DB.GetDeletes(c.Params("timestamp"), c.Query("offset"), c.Query("limit"))
@@ -78,21 +78,21 @@ func GetMessages(c *fiber.Ctx) error {
 		}
 		// Return status 200 OK.
 		return json.NewEncoder(c.Type("json", "utf-8").Response().BodyWriter()).Encode(fiber.Map{
-			"error":         false,
-			"msg":           nil,
-			"count_query_data":  len(query_data),
-			"query_data": 		 query_data,
+			"error":            false,
+			"msg":              nil,
+			"count_query_data": len(query_data),
+			"query_data":       query_data,
 		})
 	}
 
 	return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-		"error":    true,
-		"msg":      "table was not found",
-		"count_query_data":    0,
-		"query_data": nil,
-		"err":      err.Error(),
+		"error":            true,
+		"msg":              "table was not found",
+		"count_query_data": 0,
+		"query_data":       nil,
+		"err":              err.Error(),
 	})
-	
+
 }
 
 func CreateMessage(c *fiber.Ctx) error {
@@ -110,6 +110,24 @@ func CreateMessage(c *fiber.Ctx) error {
 
 	// Set initialized default data for message:
 	message.Timestamp = time.Now().UTC()
+
+	// Checking, if message with given ID is exists.
+	if _, err := DB.GetMessage(message.UUID); err == nil {
+		// Return status 404 and message not found error.
+		return c.Status(fiber.StatusConflict).JSON(fiber.Map{
+			"error": true,
+			"msg":   "message with this UUID is already existed",
+		})
+	}
+
+	// Checking, if message with given ID is exists.
+	if _, err := DB.GetUpdate(message.UUID); err == nil {
+		// Return status 404 and message not found error.
+		return c.Status(fiber.StatusConflict).JSON(fiber.Map{
+			"error": true,
+			"msg":   "message with this UUID is already existed and deleted.",
+		})
+	}
 
 	if err := DB.CreateMessage(message); err != nil {
 		// Return status 500 and error message.

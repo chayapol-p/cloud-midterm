@@ -22,18 +22,18 @@ func (q *UpdatedMessageQueries) GetUpdates(time string, offset string, limit str
 	// 	updated_messages.message,
 	// 	updated_messages.likes
 	// FROM
-	// 	( select * from 
+	// 	( select * from
 	// 		messages
 	// 		where timestamp > $1
 	// 	) as messages
-	// RIGHT JOIN updated_messages 
+	// RIGHT JOIN updated_messages
 	// ON messages.uuid = updated_messages.uuid
 	// WHERE updated_messages.timestamp > $1
 	// 	and messages.uuid is NULL
 	// 	and not updated_messages.is_deleted
 	// offset $2 limit $3;`
 
-	query := `SELECT uuid, author, message, likes FROM updated_messages WHERE timestamp > $1 offset $2 limit $3;`
+	query := `SELECT uuid, author, message, likes FROM updated_messages WHERE not is_deleted and timestamp > $1 offset $2 limit $3;`
 	// Send query to database.
 	err := q.Select(&updates, query, time, offset, limit)
 	if err != nil {
@@ -54,11 +54,11 @@ func (q *UpdatedMessageQueries) GetDeletes(time string, offset string, limit str
 	// query := `SELECT
 	// 	updated_messages.uuid
 	// FROM
-	// 	( select * from 
+	// 	( select * from
 	// 		messages
 	// 		where timestamp > $1
 	// 	) as messages
-	// RIGHT JOIN updated_messages 
+	// RIGHT JOIN updated_messages
 	// ON messages.uuid = updated_messages.uuid
 	// WHERE updated_messages.timestamp > $1
 	// 	and messages.uuid is NULL

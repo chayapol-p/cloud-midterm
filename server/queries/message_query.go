@@ -11,15 +11,28 @@ type MessageQueries struct {
 }
 
 // GetMessages method for getting all messages.
-func (q *MessageQueries) GetMessages() ([]models.OutputMessage, error) {
+func (q *MessageQueries) GetMessages(time string, offset string, limit string) ([]models.OutputMessage, error) {
 	// Define messages variable.
 	messages := []models.OutputMessage{}
 
 	// Define query string.
-	query := `SELECT uuid, author, message, likes FROM messages`
+	// query := `SELECT
+	// 	messages.uuid,
+	// 	messages.author,
+	// 	messages.message,
+	// 	messages.likes,
+	// 	updated_messages.author as updated_author,
+	// 	updated_messages.message as updated_message,
+	// 	updated_messages.likes as updated_likes
+	// FROM
+	// 	messages
+	// LEFT JOIN updated_messages 
+	// ON messages.uuid = updated_messages.uuid
+	// WHERE messages.timestamp > $1 offset $2 limit $3;`
 
+	query := `SELECT uuid, author, message, likes FROM messages WHERE timestamp > $1 offset $2 limit $3;`
 	// Send query to database.
-	err := q.Select(&messages, query)
+	err := q.Select(&messages, query, time, offset, limit)
 	if err != nil {
 		// Return empty object and error.
 		return messages, err

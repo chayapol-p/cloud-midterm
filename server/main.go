@@ -24,7 +24,7 @@ func SwaggerRoute(a *fiber.App) {
 func MessagesRoute(app *fiber.App) {
 	route := app.Group("/api/messages")
 
-	route.Get("/", controllers.GetMessages)
+	route.Get("/:timestamp", controllers.GetMessages)
 	route.Post("/", controllers.CreateMessage)
 	route.Delete("/:uuid", controllers.DeleteMessage)
 	route.Put("/:uuid", controllers.UpdateMessage)
@@ -33,6 +33,9 @@ func MessagesRoute(app *fiber.App) {
 func main() {
 	app := fiber.New()
 	app.Get("/", hello)
+
+	controllers.InitialDB()
+
 	MessagesRoute(app)
 	SwaggerRoute(app)
 	app.Listen(":3000")

@@ -11,15 +11,31 @@ type UpdatedMessageQueries struct {
 }
 
 // GetMessages method for getting all messages.
-func (q *UpdatedMessageQueries) GetUpdates() ([]models.OutputUpdatedMessage, error) {
+func (q *UpdatedMessageQueries) GetUpdates(time string, offset string, limit string) ([]models.OutputUpdatedMessage, error) {
 	// Define messages variable.
 	updates := []models.OutputUpdatedMessage{}
 
 	// Define query string.
-	query := `SELECT uuid, author, message, likes, is_deleted FROM updated_messages`
+	// query := `SELECT
+	// 	updated_messages.uuid,
+	// 	updated_messages.author,
+	// 	updated_messages.message,
+	// 	updated_messages.likes
+	// FROM
+	// 	( select * from 
+	// 		messages
+	// 		where timestamp > $1
+	// 	) as messages
+	// RIGHT JOIN updated_messages 
+	// ON messages.uuid = updated_messages.uuid
+	// WHERE updated_messages.timestamp > $1
+	// 	and messages.uuid is NULL
+	// 	and not updated_messages.is_deleted
+	// offset $2 limit $3;`
 
+	query := `SELECT uuid, author, message, likes FROM updated_messages WHERE timestamp > $1 offset $2 limit $3;`
 	// Send query to database.
-	err := q.Select(&updates, query)
+	err := q.Select(&updates, query, time, offset, limit)
 	if err != nil {
 		// Return empty object and error.
 		return updates, err
@@ -27,6 +43,39 @@ func (q *UpdatedMessageQueries) GetUpdates() ([]models.OutputUpdatedMessage, err
 
 	// Return query result.
 	return updates, nil
+}
+
+// GetMessages method for getting all messages.
+func (q *UpdatedMessageQueries) GetDeletes(time string, offset string, limit string) ([]string, error) {
+	// Define messages variable.
+	deletes := []string{}
+
+	// Define query string.
+	// query := `SELECT
+	// 	updated_messages.uuid
+	// FROM
+	// 	( select * from 
+	// 		messages
+	// 		where timestamp > $1
+	// 	) as messages
+	// RIGHT JOIN updated_messages 
+	// ON messages.uuid = updated_messages.uuid
+	// WHERE updated_messages.timestamp > $1
+	// 	and messages.uuid is NULL
+	// 	and updated_messages.is_deleted
+	// offset $2 limit $3;`
+
+	query := `SELECT uuid FROM updated_messages WHERE is_deleted and timestamp > $1 offset $2 limit $3;`
+
+	// Send query to database.
+	err := q.Select(&deletes, query, time, offset, limit)
+	if err != nil {
+		// Return empty object and error.
+		return deletes, err
+	}
+
+	// Return query result.
+	return deletes, nil
 }
 
 // // GetMessage method for getting one message by given ID.
